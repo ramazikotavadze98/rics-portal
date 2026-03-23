@@ -1,0 +1,27 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "6kfECRT5ejj_course_id",
+  "title": "Activity",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Untitled Scene"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5ZF9i8gY4lA",
+      "title": "Drag and Drop",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1540,
+    "height": 838
+  },
+  "stage": {
+    "width": 1280,
+    "height": 720
+  }
+}

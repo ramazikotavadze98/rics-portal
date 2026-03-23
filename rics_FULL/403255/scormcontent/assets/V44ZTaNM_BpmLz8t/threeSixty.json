@@ -1,0 +1,67 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "6cjcIPUIBDF_course_id",
+  "title": "Knowledge Check",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "P2"
+    }
+  ],
+  "slides": [
+    {
+      "id": "6UtulDMULF0",
+      "title": "Intro",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "6ZltCMJbR6a",
+      "title": "Q1",
+      "scene_index": "1.2"
+    },
+    {
+      "id": "5iXY5jO2CfH",
+      "title": "Q2",
+      "scene_index": "1.3"
+    },
+    {
+      "id": "5fDNiI046en",
+      "title": "Q3",
+      "scene_index": "1.4"
+    },
+    {
+      "id": "5WHUuIspuBk",
+      "title": "Q4",
+      "scene_index": "1.5"
+    },
+    {
+      "id": "5z5dKmX2pa5",
+      "title": "Q5",
+      "scene_index": "1.6"
+    },
+    {
+      "id": "5ac1cygEjeb",
+      "title": "Q6",
+      "scene_index": "1.7"
+    },
+    {
+      "id": "6bghfXHkNGA",
+      "title": "Q7",
+      "scene_index": "1.8"
+    },
+    {
+      "id": "63XptvSbpRb",
+      "title": "End of Quiz - Keep as Is",
+      "scene_index": "1.9"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 980,
+    "height": 560
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

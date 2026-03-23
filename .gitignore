@@ -1,0 +1,7 @@
+# Large local videos are not suitable for GitHub Pages repository storage
+rics_videos/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/

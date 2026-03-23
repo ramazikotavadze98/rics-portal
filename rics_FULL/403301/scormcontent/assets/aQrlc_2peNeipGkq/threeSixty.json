@@ -1,0 +1,42 @@
+{
+  "version": "3.68.28887.0",
+  "course_id": "5sAPe2JyzBb",
+  "title": "FQS M4 Part 3: Scenario",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "ICMS 3 M1 Scenario A - Table 1"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5vTno2TiUKM",
+      "title": "Intro",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "651osH3BgIq",
+      "title": "Options",
+      "scene_index": "1.2"
+    },
+    {
+      "id": "62tclbKty0T",
+      "title": "Table",
+      "scene_index": "1.3"
+    },
+    {
+      "id": "6fsbFOIT3pd",
+      "title": "Priorities",
+      "scene_index": "1.4"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1540,
+    "height": 815
+  },
+  "stage": {
+    "width": 1280,
+    "height": 720
+  }
+}

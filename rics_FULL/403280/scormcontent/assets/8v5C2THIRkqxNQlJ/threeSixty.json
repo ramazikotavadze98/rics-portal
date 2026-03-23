@@ -1,0 +1,27 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "6d9X6nsyP2g",
+  "title": "FQS M3 P1 GIA",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Interaction"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5YLXcuPacdr",
+      "title": "GIA",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1220,
+    "height": 658
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

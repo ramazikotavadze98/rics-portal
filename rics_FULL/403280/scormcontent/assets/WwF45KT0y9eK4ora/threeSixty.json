@@ -1,0 +1,27 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "6TKqKDjZ5lQ",
+  "title": "FQS M3 P1 Methods of M",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Interaction"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5YLXcuPacdr",
+      "title": "Key points",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1220,
+    "height": 658
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

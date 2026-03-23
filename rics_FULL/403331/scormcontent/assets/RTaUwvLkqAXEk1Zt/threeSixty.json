@@ -1,0 +1,32 @@
+{
+  "version": "3.71.29339.0",
+  "course_id": "5hxXlaNvy4q",
+  "title": "ICMS 3 M1 Scenario A",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Text Entry"
+    }
+  ],
+  "slides": [
+    {
+      "id": "6rmC0uuHJeV",
+      "title": "1",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "6WCcQJyTwcD",
+      "title": "2",
+      "scene_index": "1.2"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1300,
+    "height": 791
+  },
+  "stage": {
+    "width": 1280,
+    "height": 720
+  }
+}

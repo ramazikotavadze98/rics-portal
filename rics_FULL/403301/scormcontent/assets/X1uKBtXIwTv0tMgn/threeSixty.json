@@ -1,0 +1,27 @@
+{
+  "version": "3.68.28887.0",
+  "course_id": "6FZusUVRi3L",
+  "title": "FQS M4 P2 L6 Time Cost Quality",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Interaction"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5YLXcuPacdr",
+      "title": "Key points",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1220,
+    "height": 658
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

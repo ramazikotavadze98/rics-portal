@@ -1,0 +1,47 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "61MK0hIdQH6_course_id",
+  "title": "FQS M2 KC P4 1.2",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Untitled Scene"
+    }
+  ],
+  "slides": [
+    {
+      "id": "6iIMwbP2lPu",
+      "title": "Intro",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "5ZF9i8gY4lA",
+      "title": "Drag and Drop",
+      "scene_index": "1.2"
+    },
+    {
+      "id": "6UNw3G4FsmG",
+      "title": "Drag and Drop",
+      "scene_index": "1.3"
+    },
+    {
+      "id": "5VY4WV0wGq5",
+      "title": "MC Question Type",
+      "scene_index": "1.4"
+    },
+    {
+      "id": "5a2Nd8IPLRU",
+      "title": "End of Quiz - Keep as Is",
+      "scene_index": "1.5"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1300,
+    "height": 740
+  },
+  "stage": {
+    "width": 1280,
+    "height": 720
+  }
+}

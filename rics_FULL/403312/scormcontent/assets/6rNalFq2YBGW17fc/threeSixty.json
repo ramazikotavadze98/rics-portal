@@ -1,0 +1,67 @@
+{
+  "version": "3.68.28887.0",
+  "course_id": "5haP59CSR8v",
+  "title": "FQS_M5_Scenario01",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Untitled Scene"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5XXpgiDgUdc",
+      "title": "Intro",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "6HRNnZVgP3O",
+      "title": "Menu Video",
+      "scene_index": "1.2"
+    },
+    {
+      "id": "6JkcAcsDtTn",
+      "title": "Menu",
+      "scene_index": "1.3"
+    },
+    {
+      "id": "5w8dRQcvndB",
+      "title": "CoWa",
+      "scene_index": "1.4"
+    },
+    {
+      "id": "5oaYH9uegdX",
+      "title": "3rd party",
+      "scene_index": "1.5"
+    },
+    {
+      "id": "69ANu8lANEf",
+      "title": "Questions",
+      "scene_index": "1.6"
+    },
+    {
+      "id": "5wdtBpIZytG",
+      "title": "Best",
+      "scene_index": "1.7"
+    },
+    {
+      "id": "5ldTXTIF9nC",
+      "title": "Tort",
+      "scene_index": "1.8"
+    },
+    {
+      "id": "6FPHMx4ltCl",
+      "title": "Finsih",
+      "scene_index": "1.9"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 980,
+    "height": 611
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

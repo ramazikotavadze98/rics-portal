@@ -1,0 +1,27 @@
+{
+  "version": "3.68.28887.0",
+  "course_id": "5yCREOrpJ9D",
+  "title": "FQS M5 P2 Advantages Disadvantages",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Interaction"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5YLXcuPacdr",
+      "title": "Key points",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1220,
+    "height": 658
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

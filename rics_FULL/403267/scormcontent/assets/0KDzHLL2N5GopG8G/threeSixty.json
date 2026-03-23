@@ -1,0 +1,27 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "5YxQYJO8j0d",
+  "title": "Activity",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Text Entry"
+    }
+  ],
+  "slides": [
+    {
+      "id": "6T3FXes29kn",
+      "title": "Sequence Drop-down",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1540,
+    "height": 814
+  },
+  "stage": {
+    "width": 1280,
+    "height": 720
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "version": "3.65.28121.0",
+  "course_id": "67zhr23CXbE_course_id",
+  "title": "Knowledge Check",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Untitled Scene"
+    }
+  ],
+  "slides": [
+    {
+      "id": "6UtulDMULF0",
+      "title": "Intro",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "6myqeI65oKe",
+      "title": "Matching Drag-and-Drop",
+      "scene_index": "1.2"
+    },
+    {
+      "id": "5ac1cygEjeb",
+      "title": "MC Question Type",
+      "scene_index": "1.3"
+    },
+    {
+      "id": "63XptvSbpRb",
+      "title": "End of Quiz - Keep as Is",
+      "scene_index": "1.4"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 980,
+    "height": 560
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

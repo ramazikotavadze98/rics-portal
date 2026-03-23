@@ -1,0 +1,27 @@
+{
+  "version": "3.68.28887.0",
+  "course_id": "6d9X6nsyP2g",
+  "title": "FQS M5 P4.3 Valuation Process",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Interaction"
+    }
+  ],
+  "slides": [
+    {
+      "id": "5YLXcuPacdr",
+      "title": "Valuation Process",
+      "scene_index": "1.1"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 1220,
+    "height": 658
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}

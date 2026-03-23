@@ -1,0 +1,1 @@
+window.globalProvideData('caption', '{"data":"1%0D%0A00:00:00,160%20--%3E%2000:00:04,160%0D%0AWhat%20are%20the%20main%20differences%0D%0Abetween%20collateral%20warranties%20and%20third%20party%0D%0A%0D%0A2%0D%0A00:00:04,160%20--%3E%2000:00:09,640%0D%0Arights%20acquired%20under%20the%20Contracts%0D%0A(Rights%20of%20Third%20Parties)%20Act%201999.%0D%0A"}')

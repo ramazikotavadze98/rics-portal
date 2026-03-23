@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loading lesson...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+    iframe { position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    #loading {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #ccc; font-family: sans-serif; font-size: 1.1rem; text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading lesson&hellip;</div>
+  <iframe id="scorm_frame" name="scormdriver_content" allowfullscreen></iframe>
+
+  <script>
+    // ─── SCORM stub functions ───────────────────────────────────────────────
+    // These satisfy both old-Rise (LMSProxyFuncs) and new-Rise (shouldLoad)
+    // checks so that content loads without a real LMS.
+
+    // shouldLoad() in newer Rise checks: typeof window.parent.IsLmsPresent === 'function'
+    var blnLmsPresent = true;
+    function IsLmsPresent() { return true; }
+
+    // LESSON_STATUS constants used by some modules via window.parent.*
+    var LESSON_STATUS_PASSED        = 1;
+    var LESSON_STATUS_COMPLETED     = 2;
+    var LESSON_STATUS_FAILED        = 3;
+    var LESSON_STATUS_INCOMPLETE    = 4;
+    var LESSON_STATUS_BROWSED       = 5;
+    var LESSON_STATUS_NOT_ATTEMPTED = 6;
+
+    // LMSProxy stub functions (all no-ops / safe return values)
+    function CommitData()               { return true; }
+    function ConcedeControl()           {}
+    function CreateResponseIdentifier(id, text) { return id || ''; }
+    function Finish()                   { return true; }
+    function GetBookmark()              { return ''; }
+    function GetDataChunk()             { return ''; }
+    function GetStatus()                { return LESSON_STATUS_INCOMPLETE; }
+    function GetStudentID()             { return 'student'; }
+    function GetStudentName()           { return 'Student'; }
+    function MatchingResponse(s, t)     { return { source: s, target: t }; }
+    function RecordFillInInteraction()  { return true; }
+    function RecordMatchingInteraction() { return true; }
+    function RecordMultipleChoiceInteraction() { return true; }
+    function ResetStatus()              { return true; }
+    function SetBookmark()              { return true; }
+    function SetDataChunk()             { return true; }
+    function SetFailed()                { return true; }
+    function SetLanguagePreference()    { return true; }
+    function SetObjectiveStatus()       { return true; }
+    function SetPassed()                { return true; }
+    function SetReachedEnd()            { return true; }
+    function SetScore()                 { return true; }
+    function WriteToDebug()             {}
+
+    // SCORM 1.2 / 2004 API stubs for embedded Storyline and SCORM checks.
+    function _apiInitialize() { return 'true'; }
+    function _apiTerminate() { return 'true'; }
+    function _apiGetValue() { return ''; }
+    function _apiSetValue() { return 'true'; }
+    function _apiCommit() { return 'true'; }
+    function _apiGetLastError() { return '0'; }
+    function _apiGetErrorString() { return 'No error'; }
+    function _apiGetDiagnostic() { return ''; }
+
+    window.API = {
+      LMSInitialize: _apiInitialize,
+      LMSFinish: _apiTerminate,
+      LMSGetValue: _apiGetValue,
+      LMSSetValue: _apiSetValue,
+      LMSCommit: _apiCommit,
+      LMSGetLastError: _apiGetLastError,
+      LMSGetErrorString: _apiGetErrorString,
+      LMSGetDiagnostic: _apiGetDiagnostic
+    };
+
+    window.API_1484_11 = {
+      Initialize: _apiInitialize,
+      Terminate: _apiTerminate,
+      GetValue: _apiGetValue,
+      SetValue: _apiSetValue,
+      Commit: _apiCommit,
+      GetLastError: _apiGetLastError,
+      GetErrorString: _apiGetErrorString,
+      GetDiagnostic: _apiGetDiagnostic
+    };
+
+    // ─── Load content in iframe ─────────────────────────────────────────────
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var module = params.get('m');
+      var lesson = params.get('l');
+      var forcedLocale = 'en';
+      var validModules = {
+        '403251': true,
+        '403255': true,
+        '403267': true,
+        '403280': true,
+        '403301': true,
+        '403312': true,
+        '403331': true
+      };
+
+      // Fail-safe defaults so opening launch.html directly still works.
+      if (!module || !validModules[module]) module = '403255';
+      if (!lesson) lesson = '1';
+
+      var driverSrc = module + '/scormdriver/indexAPI.html?locale=' + forcedLocale;
+      var contentSrc = module + '/scormcontent/index.html?locale=' + forcedLocale;
+      if (lesson) contentSrc += '#/lessons/' + lesson + '?locale=' + forcedLocale;
+      else        contentSrc += '#/preview?locale=' + forcedLocale;
+
+      var frame = document.getElementById('scorm_frame');
+      var loading = document.getElementById('loading');
+      var loaded = false;
+      var fellBack = false;
+
+      frame.onload = function () {
+        loaded = true;
+        loading.style.display = 'none';
+      };
+
+      // Preferred path: run through SCORM driver.
+      frame.src = driverSrc;
+
+      // Fallback path: direct content if driver stalls.
+      setTimeout(function () {
+        if (!loaded) {
+          fellBack = true;
+          loading.textContent = 'Driver stalled, loading direct content...';
+          frame.src = contentSrc;
+        }
+      }, 8000);
+
+      setTimeout(function () {
+        if (!loaded && fellBack) {
+          loading.textContent = 'Still loading. Try Ctrl+F5 once.';
+        }
+      }, 16000);
+    })();
+  </script>
+</body>
+</html>

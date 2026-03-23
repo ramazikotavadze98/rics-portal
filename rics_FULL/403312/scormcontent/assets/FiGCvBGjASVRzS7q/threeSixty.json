@@ -1,0 +1,47 @@
+{
+  "version": "3.68.28887.0",
+  "course_id": "6HQei0sqsAZ_course_id",
+  "title": "Kowledge Check",
+  "thumbnail": "story_content/thumbnail.jpg",
+  "scenes": [
+    {
+      "title": "Untitled Scene"
+    }
+  ],
+  "slides": [
+    {
+      "id": "6UtulDMULF0",
+      "title": "Intro",
+      "scene_index": "1.1"
+    },
+    {
+      "id": "5ac1cygEjeb",
+      "title": "MC Question Type",
+      "scene_index": "1.2"
+    },
+    {
+      "id": "5da4Vnj9m5p",
+      "title": "MC Question Type",
+      "scene_index": "1.3"
+    },
+    {
+      "id": "66YpFDqfsPB",
+      "title": "MC Question Type",
+      "scene_index": "1.4"
+    },
+    {
+      "id": "63XptvSbpRb",
+      "title": "End of Quiz - Keep as Is",
+      "scene_index": "1.5"
+    }
+  ],
+  "player": {
+    "name": "unified",
+    "width": 980,
+    "height": 560
+  },
+  "stage": {
+    "width": 960,
+    "height": 540
+  }
+}
