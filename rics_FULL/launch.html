@@ -7,23 +7,99 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
-    iframe { position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    iframe { position: fixed; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 1; }
     #loading {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       color: #ccc; font-family: sans-serif; font-size: 1.1rem; text-align: center;
     }
+    #launch-reader {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 2147483600;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: rgba(10, 20, 30, 0.88);
+      border: 1px solid #2d4452;
+      border-radius: 10px;
+      padding: 8px;
+      backdrop-filter: blur(2px);
+    }
+    #launch-reader button {
+      border: 1px solid #166a5f;
+      background: #ffffff;
+      color: #0f4c44;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,.28);
+    }
+    #launch-reader-label {
+      color: #cfe6ee;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .03em;
+      margin-right: 2px;
+      white-space: nowrap;
+    }
+    #launch-reader select,
+    #launch-reader input[type="range"] {
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid #2d4452;
+      background: #f8fbfd;
+      color: #173646;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    #launch-reader input[type="range"] {
+      padding: 0;
+      width: 96px;
+    }
+    #launch-reader-rate-label {
+      color: #cfe6ee;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    #launch-reader-status {
+      color: #f4e9b8;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #launch-reader button:hover { background: #0f6a66; color: #fff; }
+    #launch-reader .stop {
+      border-color: #8b2c39;
+      color: #8b2c39;
+      display: none;
+    }
+    #launch-reader .stop:hover { background: #8b2c39; color: #fff; }
   </style>
 </head>
 <body>
   <div id="loading">Loading lesson&hellip;</div>
   <iframe id="scorm_frame" name="scormdriver_content" allowfullscreen></iframe>
+  <div id="launch-reader" aria-label="Module text reader">
+    <span id="launch-reader-label">Voice reader</span>
+    <button type="button" id="launch-read-btn">Read as Georgian</button>
+    <button type="button" class="stop" id="launch-stop-btn">Stop</button>
+    <select id="launch-voice-select" aria-label="Voice"></select>
+    <span id="launch-reader-rate-label">Speed 0.9x</span>
+    <input id="launch-rate" type="range" min="0.7" max="1.15" step="0.05" value="0.9" aria-label="Speech speed">
+    <span id="launch-reader-status"></span>
+  </div>
 
   <script>
-    // ─── SCORM stub functions ───────────────────────────────────────────────
-    // These satisfy both old-Rise (LMSProxyFuncs) and new-Rise (shouldLoad)
-    // checks so that content loads without a real LMS.
 
-    // shouldLoad() in newer Rise checks: typeof window.parent.IsLmsPresent === 'function'
     var blnLmsPresent = true;
     function IsLmsPresent() { return true; }
 
@@ -144,6 +220,254 @@
           loading.textContent = 'Still loading. Try Ctrl+F5 once.';
         }
       }, 16000);
+    })();
+
+    (function () {
+      if (!('speechSynthesis' in window)) return;
+
+      var readBtn = document.getElementById('launch-read-btn');
+      var stopBtn = document.getElementById('launch-stop-btn');
+      var voiceSelect = document.getElementById('launch-voice-select');
+      var rateInput = document.getElementById('launch-rate');
+      var rateLabel = document.getElementById('launch-reader-rate-label');
+      var statusEl = document.getElementById('launch-reader-status');
+      if (!readBtn || !stopBtn || !voiceSelect || !rateInput || !rateLabel || !statusEl) return;
+
+      var state = { reading: false, paused: false };
+
+      function cleanText(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim();
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message || '';
+      }
+
+      function collectFrames(win, out) {
+        out.push(win);
+        var frames = [];
+        try {
+          frames = win.document ? win.document.querySelectorAll('iframe') : [];
+        } catch (e) {
+          frames = [];
+        }
+        for (var i = 0; i < frames.length; i++) {
+          try {
+            if (frames[i].contentWindow) collectFrames(frames[i].contentWindow, out);
+          } catch (e) {}
+        }
+      }
+
+      function getBestSelectionText() {
+        var windows = [];
+        collectFrames(window, windows);
+
+        var best = '';
+        for (var i = 0; i < windows.length; i++) {
+          var w = windows[i];
+          var selected = '';
+          try {
+            var sel = w.getSelection ? w.getSelection() : null;
+            selected = cleanText(sel ? sel.toString() : '');
+          } catch (e) {
+            selected = '';
+          }
+          if (selected.length > best.length) best = selected;
+        }
+
+        if (best.length > 20000) best = best.slice(0, 20000);
+        return best;
+      }
+
+      function splitForTranslate(text, maxLen) {
+        var chunks = [];
+        var source = text || '';
+        while (source.length > maxLen) {
+          var cut = source.lastIndexOf(' ', maxLen);
+          if (cut < 200) cut = maxLen;
+          chunks.push(source.slice(0, cut));
+          source = source.slice(cut).trim();
+        }
+        if (source) chunks.push(source);
+        return chunks;
+      }
+
+      function looksGeorgian(text) {
+        return /[\u10A0-\u10FF]/.test(text || '');
+      }
+
+      function parseGoogleTranslateResponse(payload) {
+        if (!Array.isArray(payload) || !Array.isArray(payload[0])) return '';
+        var out = '';
+        for (var i = 0; i < payload[0].length; i++) {
+          var row = payload[0][i];
+          if (Array.isArray(row) && row[0]) out += row[0];
+        }
+        return cleanText(out);
+      }
+
+      async function translateToGeorgian(text) {
+        if (!text) return '';
+        if (looksGeorgian(text)) return text;
+
+        var chunks = splitForTranslate(text, 900);
+        var translated = [];
+        for (var i = 0; i < chunks.length; i++) {
+          setStatus('Translating ' + (i + 1) + '/' + chunks.length + '...');
+          var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ka&dt=t&q=' + encodeURIComponent(chunks[i]);
+          var response = await fetch(url);
+          if (!response.ok) throw new Error('Translation service unavailable');
+          var data = await response.json();
+          var piece = parseGoogleTranslateResponse(data);
+          translated.push(piece || chunks[i]);
+        }
+        return cleanText(translated.join(' '));
+      }
+
+      function pickGeorgianVoice() {
+        var voices = window.speechSynthesis.getVoices();
+        for (var i = 0; i < voices.length; i++) {
+          var lang = (voices[i].lang || '').toLowerCase();
+          if (lang.indexOf('ka') === 0) return voices[i];
+        }
+        return null;
+      }
+
+      function getAllVoices() {
+        return window.speechSynthesis.getVoices().slice();
+      }
+
+      function populateVoiceSelect() {
+        var voices = getAllVoices();
+        if (!voices.length) {
+          voiceSelect.innerHTML = '<option value="">No voices</option>';
+          return;
+        }
+
+        var preferredKa = [];
+        var fallback = [];
+        for (var i = 0; i < voices.length; i++) {
+          var v = voices[i];
+          var lang = (v.lang || '').toLowerCase();
+          if (lang.indexOf('ka') === 0) preferredKa.push(v);
+          else fallback.push(v);
+        }
+
+        var ordered = preferredKa.concat(fallback);
+        var html = '';
+        for (var j = 0; j < ordered.length; j++) {
+          var voice = ordered[j];
+          var label = voice.name + ' (' + voice.lang + ')';
+          html += '<option value="' + j + '">' + label.replace(/</g, '&lt;') + '</option>';
+        }
+        voiceSelect.innerHTML = html;
+        voiceSelect._orderedVoices = ordered;
+
+        if (preferredKa.length) {
+          voiceSelect.value = '0';
+          setStatus('Using Georgian voice: ' + preferredKa[0].name);
+        } else {
+          voiceSelect.value = '0';
+          setStatus('No Georgian voice found. Pick best fallback voice');
+        }
+      }
+
+      function getSelectedVoice() {
+        var ordered = voiceSelect._orderedVoices || [];
+        var idx = parseInt(voiceSelect.value, 10);
+        if (isNaN(idx) || idx < 0 || idx >= ordered.length) return null;
+        return ordered[idx];
+      }
+
+      function updateRateLabel() {
+        var value = Number(rateInput.value || '0.9').toFixed(2);
+        rateLabel.textContent = 'Speed ' + value + 'x';
+      }
+
+      function setUi(reading, paused) {
+        state.reading = !!reading;
+        state.paused = !!paused;
+        if (!reading) readBtn.textContent = 'Read as Georgian';
+        else readBtn.textContent = paused ? 'Resume' : 'Pause';
+        stopBtn.style.display = reading ? '' : 'none';
+      }
+
+      async function startReading() {
+        window.speechSynthesis.cancel();
+        var text = getBestSelectionText();
+        if (!text) {
+          setStatus('Select text first');
+          return;
+        }
+
+        try {
+          setStatus('Preparing Georgian audio...');
+          var translated = await translateToGeorgian(text);
+          if (!translated) {
+            setStatus('Translation failed');
+            return;
+          }
+
+          var utter = new SpeechSynthesisUtterance(translated);
+          utter.rate = Number(rateInput.value || '0.9');
+          utter.pitch = 1;
+          utter.lang = 'ka-GE';
+
+          var selectedVoice = getSelectedVoice() || pickGeorgianVoice();
+          if (selectedVoice) utter.voice = selectedVoice;
+
+          utter.onstart = function () { setStatus('Speaking in Georgian'); };
+          utter.onend = function () { setUi(false, false); setStatus(''); };
+          utter.onerror = function () { setUi(false, false); setStatus('Could not play audio'); };
+
+          setUi(true, false);
+          window.speechSynthesis.speak(utter);
+        } catch (e) {
+          setUi(false, false);
+          setStatus('Translation blocked. Check internet/CORS');
+        }
+      }
+
+      readBtn.addEventListener('click', function () {
+        if (!state.reading) {
+          startReading();
+          return;
+        }
+        if (state.paused) {
+          window.speechSynthesis.resume();
+          setUi(true, false);
+          setStatus('Speaking in Georgian');
+        } else {
+          window.speechSynthesis.pause();
+          setUi(true, true);
+          setStatus('Paused');
+        }
+      });
+
+      stopBtn.addEventListener('click', function () {
+        window.speechSynthesis.cancel();
+        setUi(false, false);
+        setStatus('');
+      });
+
+      voiceSelect.addEventListener('change', function () {
+        var v = getSelectedVoice();
+        if (!v) return;
+        setStatus('Voice: ' + v.name + ' (' + v.lang + ')');
+      });
+
+      rateInput.addEventListener('input', updateRateLabel);
+
+      updateRateLabel();
+      populateVoiceSelect();
+
+      window.speechSynthesis.onvoiceschanged = function () {
+        populateVoiceSelect();
+      };
+
+      window.addEventListener('beforeunload', function () {
+        window.speechSynthesis.cancel();
+      });
     })();
   </script>
 </body>
