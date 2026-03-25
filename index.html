@@ -204,6 +204,31 @@
     .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
     .video-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: var(--shadow); }
     .video-player { width: 100%; border-radius: 10px; background: #000; margin: 8px 0; max-height: 62vh; }
+    .video-embed-wrap {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+      margin: 8px 0;
+    }
+    .video-embed {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .video-setup-tip {
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px dashed #c9d2de;
+      color: #415264;
+      background: #f7fafc;
+      font-size: 13px;
+    }
     .video-audio { display: none; }
     .btn--audio { margin-bottom: 8px; }
     .variant-links { display: grid; gap: 6px; margin-top: 8px; }
@@ -328,16 +353,21 @@
     </div>
 
     <section class="videos">
-            <h2>Videos</h2>
+      <h2>Videos</h2>
       <div class="video-grid">
-        <div class="video-card" data-sync="0">
-            <div class="title">RICS Global Foundation in Quantity Surveying - Instance 4 - 2025 Consolidation Session 2 (DL-QSF-2025-G4)-20260226_153048-Meetin</div>
-            <video class="video-player" controls preload="metadata" playsinline src="rics_videos/RICS Global Foundation in Quantity Surveying - Instance 4 - 2025 Consolidation Session 2 (DL-QSF-2025-G4)-20260226_153048-Meetin.merged.mp4"></video>
-            
-            <div class="meta">Available files (simple labels):</div>
-            <div class="variant-links"><a class="btn btn--variant" href="rics_videos/RICS Global Foundation in Quantity Surveying - Instance 4 - 2025 Consolidation Session 2 (DL-QSF-2025-G4)-20260226_153048-Meetin.merged.mp4" target="_blank">Merged video (audio + video) (0.32 GB)</a><a class="btn btn--variant" href="rics_videos/RICS Global Foundation in Quantity Surveying - Instance 4 - 2025 Consolidation Session 2 (DL-QSF-2025-G4)-20260226_153048-Meetin.fhls-fastly_skyfire-643.mp4" target="_blank">Video track only (no sound) (0.22 GB)</a><a class="btn btn--variant" href="rics_videos/RICS Global Foundation in Quantity Surveying - Instance 4 - 2025 Consolidation Session 2 (DL-QSF-2025-G4)-20260226_153048-Meetin.fhls-fastly_skyfire-audio-high-English.mp4" target="_blank">Audio track only (0.10 GB)</a></div>
+        <div class="video-card" data-youtube-id="PASTE_UNLISTED_VIDEO_ID_HERE">
+          <div class="title">RICS Consolidation Session (YouTube Unlisted)</div>
+          <div class="video-embed-wrap" id="youtubeEmbedWrap">
+            <div class="video-setup-tip" id="youtubeSetupTip">
+              Setup needed: replace <b>PASTE_UNLISTED_VIDEO_ID_HERE</b> with your YouTube ID in this file.
+            </div>
+          </div>
+          <div class="meta">Visibility should be set to <b>Unlisted</b> on YouTube.</div>
+          <div class="variant-links">
+            <a class="btn btn--variant" id="youtubeWatchLink" href="#" target="_blank" rel="noopener">Open on YouTube</a>
+          </div>
         </div>
-        </div>
+      </div>
     </section>
   </div>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -883,6 +913,34 @@
         }
 
         renderProgress();
+
+        const ytCard = document.querySelector('.video-card[data-youtube-id]');
+        if (ytCard) {
+          const ytIdRaw = ytCard.getAttribute('data-youtube-id') || '';
+          const ytId = ytIdRaw.trim();
+          const wrap = document.getElementById('youtubeEmbedWrap');
+          const setupTip = document.getElementById('youtubeSetupTip');
+          const watchLink = document.getElementById('youtubeWatchLink');
+
+          const validId = /^[A-Za-z0-9_-]{11}$/.test(ytId);
+          if (watchLink && validId) {
+            watchLink.href = `https://www.youtube.com/watch?v=${ytId}`;
+          }
+
+          if (wrap && validId) {
+            const iframe = document.createElement('iframe');
+            iframe.className = 'video-embed';
+            iframe.src = `https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`;
+            iframe.title = 'YouTube video player';
+            iframe.loading = 'lazy';
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+            iframe.allowFullscreen = true;
+            wrap.innerHTML = '';
+            wrap.appendChild(iframe);
+          } else if (setupTip) {
+            setupTip.style.display = '';
+          }
+        }
 
         const cards = document.querySelectorAll('.video-card[data-sync="1"]');
         cards.forEach((card) => {
