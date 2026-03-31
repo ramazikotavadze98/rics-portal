@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RICS Admin Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4efe5;
+      --ink: #1d2f35;
+      --muted: #607175;
+      --panel: #ffffff;
+      --line: #d7dfdc;
+      --accent: #0f6a66;
+      --accent-2: #d6842a;
+      --danger: #9f2f2f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 430px at 100% -8%, #f5d9bb 0, transparent 60%),
+        radial-gradient(840px 380px at -10% 0%, #d9eee9 0, transparent 56%),
+        var(--bg);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 16px 34px; }
+    .hero {
+      background: linear-gradient(130deg, #0f6a66 0%, #2a7e77 58%, #d6842a 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 34px rgba(15, 106, 102, 0.22);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .hero h1 { margin: 0 0 6px; font-size: clamp(24px, 4vw, 38px); }
+    .hero p { margin: 0; color: rgba(255,255,255,0.92); }
+    .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 13px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+    }
+    .btn:hover { background: rgba(255, 255, 255, 0.22); }
+    .board {
+      margin-top: 16px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 14px 30px rgba(17, 31, 38, 0.1);
+    }
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    th {
+      background: #f6faf8;
+      color: #35535d;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .progress-shell {
+      width: 170px;
+      height: 8px;
+      border-radius: 999px;
+      background: #e8efec;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0f6a66, #d6842a);
+    }
+    .mono { font-family: Consolas, Menlo, monospace; }
+    .danger {
+      border: 1px solid #dfb6b6;
+      color: var(--danger);
+      background: #fff6f6;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .danger-soft {
+      border: 1px solid #e5cfcf;
+      color: #8f3e3e;
+      background: #fffafa;
+      border-radius: 8px;
+      padding: 5px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .action-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (min-width: 1600px) {
+      .wrap { max-width: 1400px; }
+    }
+    @media (max-width: 760px) {
+      .wrap { padding: 16px 10px 24px; }
+      .hero { border-radius: 14px; padding: 14px; }
+      .hero-actions { width: 100%; }
+      .btn { text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Admin Dashboard</h1>
+        <p>Review learner progress tracked in this browser profile.</p>
+      </div>
+      <div class="hero-actions">
+        <a class="btn" href="index.html">Open Learner Portal</a>
+        <button id="logoutBtn" class="btn" type="button">Logout</button>
+      </div>
+    </section>
+
+    <section class="board">
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Gmail</th>
+            <th>Mobile</th>
+            <th>Progress</th>
+            <th>Last Activity</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    (function () {
+      if (!window.RicsAuth) return;
+
+      var rowsEl = document.getElementById('rows');
+      var metaEl = document.getElementById('meta');
+      var totalLessons = 0;
+
+      function fmt(ts) {
+        if (!ts) return 'never';
+        var d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return 'never';
+        return d.toLocaleString();
+      }
+
+      async function render() {
+        var data = await window.RicsAuth.getProgressSummary(totalLessons);
+        rowsEl.innerHTML = '';
+
+        if (!data.length) {
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td colspan="7">No learner accounts yet.</td>';
+          rowsEl.appendChild(tr);
+        } else {
+          data.forEach(function (user) {
+            var tr = document.createElement('tr');
+            var progressLabel = totalLessons > 0
+              ? user.done + ' / ' + totalLessons + ' (' + user.pct + '%)'
+              : user.done + ' completed';
+            tr.innerHTML =
+              '<td class="mono">' + user.username + '</td>' +
+              '<td class="mono">' + (user.email || '-') + '</td>' +
+              '<td class="mono">' + (user.mobile || '-') + '</td>' +
+              '<td>' +
+                '<div>' + progressLabel + '</div>' +
+                '<div class="progress-shell"><div class="progress-fill" style="width:' + user.pct + '%"></div></div>' +
+              '</td>' +
+              '<td>' + fmt(user.lastActivity) + '</td>' +
+              '<td>' + fmt(user.createdAt) + '</td>' +
+              '<td>' +
+                '<div class="action-row">' +
+                  '<button class="danger" data-action="reset" data-user="' + user.username + '">Reset Progress</button>' +
+                  '<button class="danger-soft" data-action="delete" data-user="' + user.username + '">Remove Student</button>' +
+                '</div>' +
+              '</td>';
+            rowsEl.appendChild(tr);
+          });
+        }
+
+        metaEl.textContent =
+          'Tracked learners: ' + data.length +
+          (totalLessons > 0 ? ' | Total lessons in portal: ' + totalLessons : '');
+      }
+
+      rowsEl.addEventListener('click', async function (event) {
+        var btn = event.target.closest('button[data-user][data-action]');
+        if (!btn) return;
+
+        var username = btn.getAttribute('data-user');
+        var action = btn.getAttribute('data-action');
+
+        if (action === 'reset') {
+          var resetConfirmed = window.confirm('Reset progress for ' + username + '?');
+          if (!resetConfirmed) return;
+          await window.RicsAuth.writeUserProgress(username, {});
+          await render();
+          return;
+        }
+
+        if (action === 'delete') {
+          var deleteConfirmed = window.confirm('Remove student "' + username + '" and delete all their progress?');
+          if (!deleteConfirmed) return;
+
+          var result = await window.RicsAuth.deleteUser(username);
+          if (!result.ok) {
+            window.alert(result.error || 'Could not remove student.');
+            return;
+          }
+          await render();
+        }
+      });
+
+      document.getElementById('logoutBtn').addEventListener('click', async function () {
+        await window.RicsAuth.logout();
+        window.location.replace('login.html');
+      });
+
+      async function init() {
+        var session = await window.RicsAuth.requireSession({
+          allowAdmin: true,
+          allowLearner: false,
+          redirectTo: 'login.html'
+        });
+        if (!session) return;
+
+        var portalMeta = await window.RicsAuth.getPortalMeta();
+        totalLessons = Number((portalMeta && portalMeta.totalLessons) || 0);
+        await render();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

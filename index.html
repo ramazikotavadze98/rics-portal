@@ -240,6 +240,18 @@
       .module-head { flex-direction: column; }
       .module-actions { align-items: flex-start; }
     }
+    @media (max-width: 520px) {
+      .wrap { padding: 14px 10px 28px; }
+      .hero { border-radius: 14px; padding: 16px 14px; }
+      .module-card { border-radius: 14px; padding: 10px; }
+      .hero-links { gap: 8px; }
+      .hero-link { width: 100%; text-align: center; }
+      #userBadge { text-align: left; }
+    }
+    @media (min-width: 1650px) {
+      .wrap { max-width: 1700px; }
+      .module-grid { grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -254,6 +266,9 @@
       <div class="hero-links">
         <a class="hero-link" href="rics_FULL/QUIZ_DASHBOARD.html" target="_blank">Open Quiz Dashboard</a>
         <a class="hero-link" href="#" id="resetProgressLink">Reset Progress</a>
+        <a class="hero-link" href="admin.html" id="adminPortalLink" style="display:none">Admin Panel</a>
+        <a class="hero-link" href="#" id="logoutLink">Logout</a>
+        <span class="hero-link" id="userBadge" aria-live="polite"></span>
       </div>
     </section>
 
@@ -453,6 +468,8 @@
     </div>
   </div>
   <div id="rics-timer-toast"></div>
+
+  <script src="auth.js"></script>
 
   <script>
   (function(){
@@ -856,61 +873,85 @@
   </script>
 </body>
 <script>
-    (() => {
-        const PROGRESS_KEY = 'rics_portal_progress_v1';
-        const lessonLinks = Array.from(document.querySelectorAll('.lesson-row--link[data-progress-key]'));
-        const progressFill = document.getElementById('progressFill');
-        const progressText = document.getElementById('progressText');
-        const resetProgressLink = document.getElementById('resetProgressLink');
+  (async () => {
+    if (!window.RicsAuth) {
+      window.location.replace('login.html');
+      return;
+    }
 
-        const readProgress = () => {
-            try {
-                return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
-            } catch (_e) {
-                return {};
-            }
-        };
+    const session = await window.RicsAuth.requireSession({
+      allowAdmin: true,
+      allowLearner: true,
+      redirectTo: 'login.html'
+    });
+    if (!session) return;
 
-        const writeProgress = (progress) => {
-            localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
-        };
+    const currentUser = session.username;
 
-        const renderProgress = () => {
-            const progress = readProgress();
-            let done = 0;
-            lessonLinks.forEach((link) => {
-                const key = link.getAttribute('data-progress-key');
-                const isDone = !!progress[key];
-                link.classList.toggle('lesson-row--done', isDone);
-                if (isDone) done += 1;
-            });
+    const lessonLinks = Array.from(document.querySelectorAll('.lesson-row--link[data-progress-key]'));
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const resetProgressLink = document.getElementById('resetProgressLink');
+    const adminPortalLink = document.getElementById('adminPortalLink');
+    const logoutLink = document.getElementById('logoutLink');
+    const userBadge = document.getElementById('userBadge');
 
-            const total = lessonLinks.length;
-            const pct = total ? Math.round((done / total) * 100) : 0;
-            if (progressFill) progressFill.style.width = `${pct}%`;
-            if (progressText) progressText.textContent = `Progress: ${done} / ${total} (${pct}%)`;
-        };
+    if (userBadge) {
+      userBadge.textContent = `User: ${currentUser}`;
+    }
+    if (adminPortalLink) {
+      adminPortalLink.style.display = session.role === 'admin' ? '' : 'none';
+    }
 
-        lessonLinks.forEach((link) => {
-            link.addEventListener('click', () => {
-                const key = link.getAttribute('data-progress-key');
-                if (!key) return;
-                const progress = readProgress();
-                progress[key] = Date.now();
-                writeProgress(progress);
-                renderProgress();
-            });
-        });
+    if (logoutLink) {
+      logoutLink.addEventListener('click', async (event) => {
+        event.preventDefault();
+        await window.RicsAuth.logout();
+        window.location.replace('login.html');
+      });
+    }
 
-        if (resetProgressLink) {
-            resetProgressLink.addEventListener('click', (event) => {
-                event.preventDefault();
-                localStorage.removeItem(PROGRESS_KEY);
-                renderProgress();
-            });
-        }
+    const readProgress = () => window.RicsAuth.readUserProgress(currentUser);
+    const writeProgress = (progress) => window.RicsAuth.writeUserProgress(currentUser, progress);
 
-        renderProgress();
+    const renderProgress = async () => {
+      const progress = await readProgress();
+      let done = 0;
+      lessonLinks.forEach((link) => {
+        const key = link.getAttribute('data-progress-key');
+        const isDone = !!progress[key];
+        link.classList.toggle('lesson-row--done', isDone);
+        if (isDone) done += 1;
+      });
+
+      const total = lessonLinks.length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      if (progressFill) progressFill.style.width = `${pct}%`;
+      if (progressText) progressText.textContent = `Progress: ${done} / ${total} (${pct}%)`;
+
+      await window.RicsAuth.setPortalMeta({ totalLessons: total });
+    };
+
+    lessonLinks.forEach((link) => {
+      link.addEventListener('click', async () => {
+        const key = link.getAttribute('data-progress-key');
+        if (!key) return;
+        const progress = await readProgress();
+        progress[key] = Date.now();
+        await writeProgress(progress);
+        await renderProgress();
+      });
+    });
+
+    if (resetProgressLink) {
+      resetProgressLink.addEventListener('click', async (event) => {
+        event.preventDefault();
+        await writeProgress({});
+        await renderProgress();
+      });
+    }
+
+    await renderProgress();
 
         const ytCard = document.querySelector('.video-card[data-youtube-id]');
         if (ytCard) {

@@ -1,6 +1,10 @@
 # Large local videos are not suitable for GitHub Pages repository storage
 rics_videos/
 
+# Runtime database
+rics_portal.db
+rics_portal.db-*
+
 # OS/editor noise
 .DS_Store
 Thumbs.db

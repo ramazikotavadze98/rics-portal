@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RICS Portal Login</title>
+  <style>
+    :root {
+      --bg: #f6f1e7;
+      --ink: #1d2e33;
+      --muted: #5d6f73;
+      --card: #ffffff;
+      --line: #d7dfdc;
+      --accent: #0f6a66;
+      --accent-2: #d6842a;
+      --danger: #b52d2d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(860px 400px at 100% -5%, #f4d8b9 0, transparent 60%),
+        radial-gradient(850px 380px at -8% 0%, #d8eee7 0, transparent 58%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: 18px;
+    }
+    .shell {
+      width: min(1040px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 14px;
+    }
+    .panel {
+      background: linear-gradient(140deg, #0f6a66, #2a7e77 56%, #d6842a);
+      border-radius: 20px;
+      color: #fff;
+      padding: 22px;
+      box-shadow: 0 18px 40px rgba(15, 106, 102, 0.24);
+    }
+    .panel h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 40px); }
+    .panel p { margin: 8px 0; color: rgba(255, 255, 255, 0.94); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: 0 14px 30px rgba(18, 32, 51, 0.11);
+    }
+    .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .tab {
+      border: 1px solid var(--line);
+      background: #f8fbf9;
+      color: #21414a;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .tab.active {
+      background: #0f6a66;
+      color: #fff;
+      border-color: #0f6a66;
+    }
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      color: var(--ink);
+      background: #fff;
+    }
+    .btn {
+      width: 100%;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 11px;
+      padding: 11px 13px;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(130deg, #0f6a66 0%, #2d7e7a 58%, #d6842a 100%);
+    }
+    .meta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .error {
+      color: var(--danger);
+      margin-top: 10px;
+      font-size: 13px;
+      min-height: 18px;
+      font-weight: 700;
+    }
+    .ok {
+      color: #0d7a45;
+      margin-top: 10px;
+      font-size: 13px;
+      min-height: 18px;
+      font-weight: 700;
+    }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 780px) {
+      .shell { grid-template-columns: 1fr; }
+      .panel, .card { border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="panel">
+      <h1>RICS Study Access</h1>
+      <p>Sign in to keep progress separate for each learner.</p>
+      <p>Admin panel supports progress review for all users.</p>
+      <p>Admins can sign in with private credentials.</p>
+    </section>
+
+    <section class="card">
+      <div class="tabs">
+        <button id="tabLogin" class="tab active" type="button">Login</button>
+        <button id="tabRegister" class="tab" type="button">Register Learner</button>
+      </div>
+
+      <form id="loginForm">
+        <label for="loginUser">Username</label>
+        <input id="loginUser" type="text" autocomplete="username" required />
+        <label for="loginPass">Password</label>
+        <input id="loginPass" type="password" autocomplete="current-password" required />
+        <button class="btn" type="submit">Sign In</button>
+        <div class="error" id="loginError"></div>
+      </form>
+
+      <form id="registerForm" style="display:none">
+        <label for="registerUser">New username</label>
+        <input id="registerUser" type="text" placeholder="example_user" required />
+        <label for="registerEmail">Gmail</label>
+        <input id="registerEmail" type="email" placeholder="example@gmail.com" required />
+        <label for="registerMobile">Mobile number</label>
+        <input id="registerMobile" type="tel" placeholder="+995 5XX XXX XXX" required />
+        <label for="registerPass">New password</label>
+        <input id="registerPass" type="password" placeholder="At least 6 chars" required />
+        <button class="btn" type="submit">Create Learner Account</button>
+        <div class="error" id="registerError"></div>
+        <div class="ok" id="registerOk"></div>
+        <div class="meta">Only learner accounts are created here. Admin uses fixed credentials.</div>
+      </form>
+    </section>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    (function () {
+      if (!window.RicsAuth) return;
+
+      async function redirectIfLoggedIn() {
+        var existing = await window.RicsAuth.getSession();
+        if (existing) {
+          if (existing.role === 'admin') {
+            window.location.replace('admin.html');
+          } else {
+            window.location.replace('index.html');
+          }
+        }
+      }
+      redirectIfLoggedIn();
+
+      var tabLogin = document.getElementById('tabLogin');
+      var tabRegister = document.getElementById('tabRegister');
+      var loginForm = document.getElementById('loginForm');
+      var registerForm = document.getElementById('registerForm');
+      var registerUserInput = document.getElementById('registerUser');
+      var registerSubmitBtn = registerForm.querySelector('button[type="submit"]');
+
+      function showTab(tabName) {
+        var loginMode = tabName === 'login';
+        tabLogin.classList.toggle('active', loginMode);
+        tabRegister.classList.toggle('active', !loginMode);
+        loginForm.style.display = loginMode ? '' : 'none';
+        registerForm.style.display = loginMode ? 'none' : '';
+      }
+
+      tabLogin.addEventListener('click', function () { showTab('login'); });
+      tabRegister.addEventListener('click', function () { showTab('register'); });
+
+      async function validateUniqueUsernameLive() {
+        var errorEl = document.getElementById('registerError');
+        var name = (registerUserInput.value || '').trim();
+
+        if (!name) {
+          if (registerSubmitBtn) registerSubmitBtn.disabled = false;
+          return;
+        }
+
+        var exists = await window.RicsAuth.usernameExists(name);
+        if (exists) {
+          errorEl.textContent = 'Username already exists. Choose another one.';
+          if (registerSubmitBtn) registerSubmitBtn.disabled = true;
+          return;
+        }
+
+        if (errorEl.textContent.indexOf('already exists') !== -1) {
+          errorEl.textContent = '';
+        }
+        if (registerSubmitBtn) registerSubmitBtn.disabled = false;
+      }
+
+      registerUserInput.addEventListener('input', validateUniqueUsernameLive);
+      registerUserInput.addEventListener('blur', validateUniqueUsernameLive);
+
+      loginForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var errorEl = document.getElementById('loginError');
+        errorEl.textContent = '';
+
+        var user = document.getElementById('loginUser').value;
+        var pass = document.getElementById('loginPass').value;
+        var result = await window.RicsAuth.login(user, pass);
+
+        if (!result.ok) {
+          errorEl.textContent = result.error;
+          return;
+        }
+
+        if (result.session.role === 'admin') {
+          window.location.replace('admin.html');
+        } else {
+          window.location.replace('index.html');
+        }
+      });
+
+      registerForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var errorEl = document.getElementById('registerError');
+        var okEl = document.getElementById('registerOk');
+        errorEl.textContent = '';
+        okEl.textContent = '';
+
+        var user = document.getElementById('registerUser').value;
+        var email = document.getElementById('registerEmail').value;
+        var mobile = document.getElementById('registerMobile').value;
+        var pass = document.getElementById('registerPass').value;
+
+        var exists = await window.RicsAuth.usernameExists(user);
+        if (exists) {
+          errorEl.textContent = 'Username already exists. Choose another one.';
+          return;
+        }
+
+        var result = await window.RicsAuth.registerUser(user, pass, email, mobile);
+
+        if (!result.ok) {
+          errorEl.textContent = result.error;
+          return;
+        }
+
+        okEl.textContent = 'Account created. You can now log in.';
+        document.getElementById('registerUser').value = '';
+        document.getElementById('registerEmail').value = '';
+        document.getElementById('registerMobile').value = '';
+        document.getElementById('registerPass').value = '';
+      });
+    })();
+  </script>
+</body>
+</html>
