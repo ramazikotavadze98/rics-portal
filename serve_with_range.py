@@ -1,12 +1,14 @@
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from email.message import EmailMessage
 import hashlib
 import hmac
 import json
 import os
 import re
 import secrets
+import smtplib
 import sqlite3
 import time
 
@@ -14,6 +16,12 @@ import time
 DB_PATH = Path(__file__).with_name("rics_portal.db")
 SESSION_COOKIE = "rics_session"
 SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
+PASSWORD_RESET_TTL_SECONDS = 15 * 60
+SMTP_HOST = os.getenv("RICS_SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("RICS_SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("RICS_SMTP_USERNAME", "")
+SMTP_PASSWORD = os.getenv("RICS_SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("RICS_SMTP_FROM", "")
 
 
 def now_ts():
@@ -34,6 +42,40 @@ def normalize_mobile(value):
 
 def mobile_digits(value):
     return re.sub(r"\D", "", normalize_mobile(value))
+
+
+def hash_reset_code(code):
+    return hashlib.sha256((code or "").encode("utf-8")).hexdigest()
+
+
+def send_reset_code_email(recipient, code, username):
+    if not SMTP_HOST or not SMTP_USERNAME or not SMTP_PASSWORD:
+        return False, "smtp_not_configured"
+
+    sender = SMTP_FROM or SMTP_USERNAME
+    msg = EmailMessage()
+    msg["Subject"] = "RICS Portal Password Reset Code"
+    msg["From"] = sender
+    msg["To"] = recipient
+    msg.set_content(
+        (
+            f"Hello {username},\n\n"
+            f"Your RICS Portal password reset code is: {code}\n"
+            f"It expires in {PASSWORD_RESET_TTL_SECONDS // 60} minutes.\n\n"
+            "If you did not request this reset, you can ignore this email."
+        )
+    )
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)
+        return True, "sent"
+    except Exception as exc:
+        return False, f"smtp_error:{exc}"
 
 
 def hash_password(password):
@@ -111,6 +153,23 @@ def init_db():
                 value_text TEXT NOT NULL,
                 updated_at INTEGER NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                channel TEXT NOT NULL CHECK(channel IN ('email','mobile')),
+                code_hash TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                used_at INTEGER,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_password_resets_user_id
+            ON password_resets(user_id);
+
+            CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at
+            ON password_resets(expires_at);
             """
         )
 
@@ -148,6 +207,10 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Credentials", "true")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         if extra_headers:
             for key, value in extra_headers.items():
                 self.send_header(key, value)
@@ -335,15 +398,15 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {"ok": False, "error": "Password must be at least 6 characters."})
             return
 
-        if not re.fullmatch(r"[a-z0-9._%+-]+@gmail\.com", email):
+        if not re.fullmatch(r"[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}", email):
             self._send_json(
                 400,
-                {"ok": False, "error": "Please provide a valid Gmail address (example@gmail.com)."},
+                {"ok": False, "error": "Please provide a valid email address (e.g., yourname@gmail.com, user@hotmail.com)."},
             )
             return
 
-        if len(mobile_key) < 7 or len(mobile_key) > 15:
-            self._send_json(400, {"ok": False, "error": "Please provide a valid mobile number."})
+        if len(mobile_key) < 6 or len(mobile_key) > 20:
+            self._send_json(400, {"ok": False, "error": "Please provide a valid mobile number (6-20 digits)."})
             return
 
         exists = db.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone()
@@ -356,7 +419,7 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
             (email,),
         ).fetchone()
         if email_exists:
-            self._send_json(409, {"ok": False, "error": "This Gmail is already registered."})
+            self._send_json(409, {"ok": False, "error": "This email address is already registered."})
             return
 
         mobile_exists = db.execute(
@@ -376,6 +439,188 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
         )
         db.commit()
         self._send_json(200, {"ok": True, "username": username})
+
+    def _find_user_for_password_reset(self, db, identifier):
+        raw = (identifier or "").strip()
+        if not raw:
+            return None, None
+
+        lowered = raw.lower()
+        if "@" in lowered:
+            user = db.execute(
+                "SELECT id, username, email, mobile_raw, mobile_digits FROM users WHERE email = ?",
+                (normalize_email(lowered),),
+            ).fetchone()
+            return user, "email"
+
+        digits = mobile_digits(raw)
+        if digits:
+            user = db.execute(
+                "SELECT id, username, email, mobile_raw, mobile_digits FROM users WHERE mobile_digits = ?",
+                (digits,),
+            ).fetchone()
+            if user is not None:
+                return user, "mobile"
+
+        user = db.execute(
+            "SELECT id, username, email, mobile_raw, mobile_digits FROM users WHERE username = ?",
+            (normalize_username(raw),),
+        ).fetchone()
+        if user is None:
+            return None, None
+
+        # Username fallback prefers email if available, otherwise mobile.
+        if (user["email"] or "").strip():
+            return user, "email"
+        if (user["mobile_digits"] or "").strip():
+            return user, "mobile"
+        return None, None
+
+    def _api_post_auth_password_reset_request(self, db):
+        body = self._parse_json_body()
+        if body is None:
+            self._send_json(400, {"ok": False, "error": "Invalid JSON payload."})
+            return
+
+        identifier = (body.get("identifier") or "").strip()
+        if not identifier:
+            self._send_json(400, {"ok": False, "error": "Username, Gmail, or mobile is required."})
+            return
+
+        requested_email = "@" in identifier
+        user, channel = self._find_user_for_password_reset(db, identifier)
+        now = now_ts()
+        db.execute("DELETE FROM password_resets WHERE expires_at <= ? OR used_at IS NOT NULL", (now,))
+
+        if requested_email and (not SMTP_HOST or not SMTP_USERNAME or not SMTP_PASSWORD):
+            db.commit()
+            self._send_json(
+                503,
+                {
+                    "ok": False,
+                    "error": "Password reset email is not configured on this server yet. Ask the admin to configure Gmail SMTP.",
+                },
+            )
+            return
+
+        if user is not None and channel is not None:
+            code = f"{secrets.randbelow(1000000):06d}"
+            db.execute(
+                "DELETE FROM password_resets WHERE user_id = ?",
+                (int(user["id"]),),
+            )
+            db.execute(
+                """
+                INSERT INTO password_resets(user_id, channel, code_hash, created_at, expires_at, used_at)
+                VALUES(?, ?, ?, ?, ?, NULL)
+                """,
+                (
+                    int(user["id"]),
+                    channel,
+                    hash_reset_code(code),
+                    now,
+                    now + PASSWORD_RESET_TTL_SECONDS,
+                ),
+            )
+
+            delivered = False
+            delivery_reason = ""
+            if channel == "email" and (user["email"] or "").strip():
+                delivered, delivery_reason = send_reset_code_email(user["email"], code, user["username"])
+
+                if not delivered:
+                    db.commit()
+                    print(
+                        f"[password-reset] user={user['username']} channel={channel} code={code} expires_in={PASSWORD_RESET_TTL_SECONDS}s reason={delivery_reason or 'email_send_failed'}"
+                    )
+                    self._send_json(
+                        502,
+                        {
+                            "ok": False,
+                            "error": "Could not send reset email. Check Gmail SMTP settings on the server and try again.",
+                        },
+                    )
+                    return
+
+            if channel == "mobile":
+                db.commit()
+                print(
+                    f"[password-reset] user={user['username']} channel={channel} code={code} expires_in={PASSWORD_RESET_TTL_SECONDS}s contact={user['mobile_raw']}"
+                )
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "message": "Password reset code has been prepared. Check your phone or ask the admin for the code (printed in server logs).",
+                    },
+                )
+                return
+
+        db.commit()
+        self._send_json(
+            200,
+            {
+                "ok": True,
+                "message": "If an account exists and delivery is configured, a reset code has been sent.",
+            },
+        )
+
+    def _api_post_auth_password_reset_confirm(self, db):
+        body = self._parse_json_body()
+        if body is None:
+            self._send_json(400, {"ok": False, "error": "Invalid JSON payload."})
+            return
+
+        identifier = (body.get("identifier") or "").strip()
+        code = (body.get("code") or "").strip()
+        new_password = body.get("newPassword") or ""
+
+        if not identifier or not code or not new_password:
+            self._send_json(400, {"ok": False, "error": "Identifier, code, and new password are required."})
+            return
+
+        if len(new_password) < 6:
+            self._send_json(400, {"ok": False, "error": "Password must be at least 6 characters."})
+            return
+
+        user, _channel = self._find_user_for_password_reset(db, identifier)
+        if user is None:
+            self._send_json(400, {"ok": False, "error": "Invalid or expired reset code."})
+            return
+
+        now = now_ts()
+        row = db.execute(
+            """
+            SELECT id, code_hash
+            FROM password_resets
+            WHERE user_id = ? AND used_at IS NULL AND expires_at > ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (int(user["id"]), now),
+        ).fetchone()
+        if row is None:
+            self._send_json(400, {"ok": False, "error": "Invalid or expired reset code."})
+            return
+
+        if not hmac.compare_digest(row["code_hash"], hash_reset_code(code)):
+            self._send_json(400, {"ok": False, "error": "Invalid or expired reset code."})
+            return
+
+        db.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (hash_password(new_password), int(user["id"])),
+        )
+        db.execute(
+            "UPDATE password_resets SET used_at = ? WHERE id = ?",
+            (now, int(row["id"])),
+        )
+        db.execute(
+            "DELETE FROM sessions WHERE user_id = ?",
+            (int(user["id"]),),
+        )
+        db.commit()
+        self._send_json(200, {"ok": True, "message": "Password has been reset. Please log in again."})
 
     def _api_get_users_exists(self, db, query):
         username = normalize_username((query.get("username") or [""])[0])
@@ -599,6 +844,12 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
             if method == "POST" and path == "/api/auth/register":
                 self._api_post_auth_register(db)
                 return True
+            if method == "POST" and path == "/api/auth/password-reset/request":
+                self._api_post_auth_password_reset_request(db)
+                return True
+            if method == "POST" and path == "/api/auth/password-reset/confirm":
+                self._api_post_auth_password_reset_confirm(db)
+                return True
             if method == "GET" and path == "/api/users/exists":
                 self._api_get_users_exists(db, query)
                 return True
@@ -618,7 +869,10 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
                 self._api_get_admin_summary(db, query)
                 return True
             if method == "DELETE" and path.startswith("/api/admin/users/"):
-                self._api_delete_admin_user(db, path.split("/api/admin/users/", 1)[1])
+                from urllib.parse import unquote
+                username_encoded = path.split("/api/admin/users/", 1)[1]
+                username = unquote(username_encoded)
+                self._api_delete_admin_user(db, username)
                 return True
             return False
         finally:
@@ -655,6 +909,15 @@ class RangeRequestHandler(SimpleHTTPRequestHandler):
         if self._handle_api("DELETE"):
             return
         self.send_error(404, "Not found")
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Credentials", "true")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def send_head(self):
         path = self.translate_path(urlparse(self.path).path)

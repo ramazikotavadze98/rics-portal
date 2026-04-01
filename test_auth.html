@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Auth API Test</title>
+  <style>
+    body { font-family: monospace; margin: 20px; white-space: pre-wrap; }
+    .success { color: green; }
+    .error { color: red; }
+    button { padding: 8px 16px; margin: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Auth API Testing</h1>
+  <button onclick="testSession()">Test Session</button>
+  <button onclick="testRegister()">Test Register</button>
+  <button onclick="testLogin()">Test Login</button>
+  <button onclick="testUserExists()">Test User Exists</button>
+  <hr>
+  <div id="output"></div>
+
+  <script src="auth.js"></script>
+  <script>
+    function log(msg, isError = false) {
+      const out = document.getElementById('output');
+      const color = isError ? 'error' : 'success';
+      out.innerHTML += `<div class="${color}">${escapeHtml(msg)}</div>`;
+      console.log(msg);
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function testSession() {
+      log('=== Testing getSession() ===');
+      try {
+        const result = await window.RicsAuth.getSession();
+        log(`Result: ${JSON.stringify(result)}`);
+      } catch (e) {
+        log(`ERROR: ${e.message}`, true);
+      }
+    }
+
+    async function testRegister() {
+      log('=== Testing registerUser() ===');
+      try {
+        const username = 'devtest' + Date.now();
+        const result = await window.RicsAuth.registerUser(
+          username,
+          'Password123',
+          'devtest@gmail.com',
+          '+995 555 123 456'
+        );
+        log(`Register result: ${JSON.stringify(result)}`);
+      } catch (e) {
+        log(`ERROR: ${e.message}`, true);
+      }
+    }
+
+    async function testLogin() {
+      log('=== Testing login() ===');
+      try {
+        const result = await window.RicsAuth.login('admin', 'admin123123');
+        log(`Login result: ${JSON.stringify(result)}`);
+      } catch (e) {
+        log(`ERROR: ${e.message}`, true);
+      }
+    }
+
+    async function testUserExists() {
+      log('=== Testing usernameExists() ===');
+      try {
+        const exists = await window.RicsAuth.usernameExists('admin');
+        log(`admin exists: ${exists}`);
+        const notExists = await window.RicsAuth.usernameExists('nonexistentuser' + Date.now());
+        log(`random user exists: ${notExists}`);
+      } catch (e) {
+        log(`ERROR: ${e.message}`, true);
+      }
+    }
+
+    log('Page loaded. Click buttons to test API.');
+  </script>
+</body>
+</html>

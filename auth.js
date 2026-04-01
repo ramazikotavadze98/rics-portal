@@ -60,6 +60,26 @@
     });
   }
 
+  async function requestPasswordReset(identifier) {
+    return apiRequest('/auth/password-reset/request', {
+      method: 'POST',
+      body: JSON.stringify({
+        identifier: identifier
+      })
+    });
+  }
+
+  async function confirmPasswordReset(identifier, code, newPassword) {
+    return apiRequest('/auth/password-reset/confirm', {
+      method: 'POST',
+      body: JSON.stringify({
+        identifier: identifier,
+        code: code,
+        newPassword: newPassword
+      })
+    });
+  }
+
   async function usernameExists(username) {
     const query = encodeURIComponent((username || '').trim());
     const result = await apiRequest('/users/exists?username=' + query, { method: 'GET' });
@@ -145,6 +165,8 @@
     login: login,
     logout: logout,
     registerUser: registerUser,
+    requestPasswordReset: requestPasswordReset,
+    confirmPasswordReset: confirmPasswordReset,
     usernameExists: usernameExists,
     getSession: getSession,
     requireSession: requireSession,

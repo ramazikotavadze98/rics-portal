@@ -18,7 +18,26 @@ How to run locally
    http://localhost:8080/login.html
 
 Login and admin
-- Learner accounts: create in login page (Register Learner tab)
+- Learner accounts: create in login page (Register Learner tab) with any email provider
+- Password reset: use Reset Password tab (by username, email, or mobile number)
+- Reset delivery options:
+  - Email delivery: Works with any email provider (Gmail, Hotmail, Yahoo, etc.). Requires SMTP setup.
+  - SMS/Mobile: Reset code is printed to server terminal logs for testing
+  - Local fallback: Always prints reset code to server terminal logs
+- SMTP env vars (configure to enable email password reset delivery):
+  Example using Gmail with 2FA (recommended):
+  - RICS_SMTP_HOST=smtp.gmail.com
+  - RICS_SMTP_PORT=587
+  - RICS_SMTP_USERNAME=<your_gmail@gmail.com>
+  - RICS_SMTP_PASSWORD=<your_google_app_password>
+  - RICS_SMTP_FROM=<your_gmail@gmail.com> (optional; defaults to username)
+  
+  For other email providers (Hotmail, Yahoo, etc.), use your provider's SMTP server:
+  - Check your email provider's help for SMTP hostname and port
+  
+  Without SMTP setup:
+  - Email reset codes print to server terminal (for testing)
+  - Mobile/SMS codes print to server terminal (admin can provide to user)
 - Admin credentials are configured server-side in serve_with_range.py or via env vars:
   - RICS_ADMIN_USERNAME (default: admin)
   - RICS_ADMIN_PASSWORD (default: admin123123)

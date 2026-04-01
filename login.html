@@ -135,6 +135,7 @@
       <div class="tabs">
         <button id="tabLogin" class="tab active" type="button">Login</button>
         <button id="tabRegister" class="tab" type="button">Register Learner</button>
+        <button id="tabReset" class="tab" type="button">Reset Password</button>
       </div>
 
       <form id="loginForm">
@@ -148,17 +149,50 @@
 
       <form id="registerForm" style="display:none">
         <label for="registerUser">New username</label>
-        <input id="registerUser" type="text" placeholder="example_user" required />
-        <label for="registerEmail">Gmail</label>
-        <input id="registerEmail" type="email" placeholder="example@gmail.com" required />
+        <input id="registerUser" type="text" placeholder="example_user (3-32 chars, a-z 0-9 . _ -)" required />
+        <div class="meta" style="color: var(--muted); font-size: 12px; margin: 4px 0 8px;">
+          Username must be 3-32 characters, using only lowercase letters, numbers, dot, underscore, or hyphen.
+        </div>
+        
+        <label for="registerEmail">Email address</label>
+        <input id="registerEmail" type="email" placeholder="yourname@gmail.com or yourname@hotmail.com" required />
+        <div class="meta" style="color: var(--muted); font-size: 12px; margin: 4px 0 8px;">
+          Any email provider accepted (Gmail, Hotmail, Yahoo, etc.)
+        </div>
+        
         <label for="registerMobile">Mobile number</label>
         <input id="registerMobile" type="tel" placeholder="+995 5XX XXX XXX" required />
+        <div class="meta" style="color: var(--muted); font-size: 12px; margin: 4px 0 8px;">
+          Enter a valid mobile number with country code (e.g., +995 555 123 456).
+        </div>
+        
         <label for="registerPass">New password</label>
-        <input id="registerPass" type="password" placeholder="At least 6 chars" required />
+        <input id="registerPass" type="password" placeholder="At least 6 characters" required />
+        <div class="meta" style="color: var(--muted); font-size: 12px; margin: 4px 0 8px;">
+          Password must be at least 6 characters.
+        </div>
+        
         <button class="btn" type="submit">Create Learner Account</button>
         <div class="error" id="registerError"></div>
         <div class="ok" id="registerOk"></div>
-        <div class="meta">Only learner accounts are created here. Admin uses fixed credentials.</div>
+      </form>
+
+      <form id="resetForm" style="display:none">
+        <label for="resetIdentifier">Username, email, or mobile number</label>
+        <input id="resetIdentifier" type="text" placeholder="username or yourname@gmail.com or +995..." required />
+        <div class="meta" style="color: var(--muted); font-size: 12px; margin: 4px 0 8px;">
+          Enter your username, email (any provider), or phone number associated with your account.
+        </div>
+        <button id="requestResetBtn" class="btn" type="button">Send Reset Code</button>
+
+        <label for="resetCode">6-digit reset code</label>
+        <input id="resetCode" type="text" inputmode="numeric" maxlength="6" placeholder="123456" required />
+        <label for="resetNewPass">New password</label>
+        <input id="resetNewPass" type="password" placeholder="At least 6 chars" required />
+        <button class="btn" type="submit">Reset Password</button>
+        <div class="error" id="resetError"></div>
+        <div class="ok" id="resetOk"></div>
+        <div class="meta">Reset code is sent to your registered email or phone. For local testing, the code is printed in server terminal logs.</div>
       </form>
     </section>
   </div>
@@ -182,21 +216,28 @@
 
       var tabLogin = document.getElementById('tabLogin');
       var tabRegister = document.getElementById('tabRegister');
+      var tabReset = document.getElementById('tabReset');
       var loginForm = document.getElementById('loginForm');
       var registerForm = document.getElementById('registerForm');
+      var resetForm = document.getElementById('resetForm');
       var registerUserInput = document.getElementById('registerUser');
       var registerSubmitBtn = registerForm.querySelector('button[type="submit"]');
 
       function showTab(tabName) {
         var loginMode = tabName === 'login';
+        var registerMode = tabName === 'register';
+        var resetMode = tabName === 'reset';
         tabLogin.classList.toggle('active', loginMode);
-        tabRegister.classList.toggle('active', !loginMode);
+        tabRegister.classList.toggle('active', registerMode);
+        tabReset.classList.toggle('active', resetMode);
         loginForm.style.display = loginMode ? '' : 'none';
-        registerForm.style.display = loginMode ? 'none' : '';
+        registerForm.style.display = registerMode ? '' : 'none';
+        resetForm.style.display = resetMode ? '' : 'none';
       }
 
       tabLogin.addEventListener('click', function () { showTab('login'); });
       tabRegister.addEventListener('click', function () { showTab('register'); });
+      tabReset.addEventListener('click', function () { showTab('reset'); });
 
       async function validateUniqueUsernameLive() {
         var errorEl = document.getElementById('registerError');
@@ -204,17 +245,25 @@
 
         if (!name) {
           if (registerSubmitBtn) registerSubmitBtn.disabled = false;
+          if (errorEl.textContent.includes('already exists')) {
+            errorEl.textContent = '';
+          }
           return;
         }
 
+        if (!/^[a-z0-9._-]{3,32}$/.test(name)) {
+          return;
+        }
+
+        // Check if username exists
         var exists = await window.RicsAuth.usernameExists(name);
         if (exists) {
-          errorEl.textContent = 'Username already exists. Choose another one.';
+          errorEl.textContent = 'Username already taken. Choose another.';
           if (registerSubmitBtn) registerSubmitBtn.disabled = true;
           return;
         }
 
-        if (errorEl.textContent.indexOf('already exists') !== -1) {
+        if (errorEl.textContent.includes('already') || errorEl.textContent.includes('taken')) {
           errorEl.textContent = '';
         }
         if (registerSubmitBtn) registerSubmitBtn.disabled = false;
@@ -251,10 +300,48 @@
         errorEl.textContent = '';
         okEl.textContent = '';
 
-        var user = document.getElementById('registerUser').value;
-        var email = document.getElementById('registerEmail').value;
-        var mobile = document.getElementById('registerMobile').value;
+        var user = document.getElementById('registerUser').value.trim();
+        var email = document.getElementById('registerEmail').value.trim();
+        var mobile = document.getElementById('registerMobile').value.trim();
         var pass = document.getElementById('registerPass').value;
+
+        // Client-side validation with helpful hints
+        if (!user) {
+          errorEl.textContent = 'Please enter a username.';
+          return;
+        }
+        if (!/^[a-z0-9._-]{3,32}$/.test(user)) {
+          errorEl.textContent = 'Username must be 3-32 chars using only: letters (a-z), numbers, dot, underscore, hyphen. No spaces or uppercase.';
+          return;
+        }
+
+        if (!email) {
+          errorEl.textContent = 'Please enter your email address.';
+          return;
+        }
+        if (!email.includes('@')) {
+          errorEl.textContent = 'Please enter a valid email address (e.g., yourname@gmail.com).';
+          return;
+        }
+
+        if (!mobile) {
+          errorEl.textContent = 'Please enter your mobile number.';
+          return;
+        }
+        var mobileDigits = mobile.replace(/\D/g, '');
+        if (mobileDigits.length < 6 || mobileDigits.length > 20) {
+          errorEl.textContent = 'Mobile number must contain 6-20 digits (including country code like +995).';
+          return;
+        }
+
+        if (!pass) {
+          errorEl.textContent = 'Please enter a password.';
+          return;
+        }
+        if (pass.length < 6) {
+          errorEl.textContent = 'Password must be at least 6 characters.';
+          return;
+        }
 
         var exists = await window.RicsAuth.usernameExists(user);
         if (exists) {
@@ -265,15 +352,71 @@
         var result = await window.RicsAuth.registerUser(user, pass, email, mobile);
 
         if (!result.ok) {
-          errorEl.textContent = result.error;
+          // Show server error but also add helpful context
+          var serverError = result.error || 'Registration failed.';
+          if (serverError.includes('email') || serverError.includes('Email')) {
+            errorEl.textContent = 'Email issue: ' + serverError;
+          } else if (serverError.includes('mobile') || serverError.includes('phone')) {
+            errorEl.textContent = 'Mobile issue: ' + serverError;
+          } else {
+            errorEl.textContent = serverError;
+          }
           return;
         }
 
-        okEl.textContent = 'Account created. You can now log in.';
+        okEl.textContent = 'Account created! You can now log in with your username.';
         document.getElementById('registerUser').value = '';
         document.getElementById('registerEmail').value = '';
         document.getElementById('registerMobile').value = '';
         document.getElementById('registerPass').value = '';
+        
+        // Show login tab after successful registration
+        setTimeout(function() {
+          showTab('login');
+        }, 2000);
+      });
+
+      document.getElementById('requestResetBtn').addEventListener('click', async function () {
+        var identifier = document.getElementById('resetIdentifier').value;
+        var errorEl = document.getElementById('resetError');
+        var okEl = document.getElementById('resetOk');
+        errorEl.textContent = '';
+        okEl.textContent = '';
+
+        if (!(identifier || '').trim()) {
+          errorEl.textContent = 'Please enter username, Gmail, or mobile.';
+          return;
+        }
+
+        var result = await window.RicsAuth.requestPasswordReset(identifier);
+        if (!result.ok) {
+          errorEl.textContent = result.error;
+          return;
+        }
+
+        okEl.textContent = result.message || 'If account exists and delivery is configured, reset code was sent.';
+      });
+
+      resetForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        var identifier = document.getElementById('resetIdentifier').value;
+        var code = document.getElementById('resetCode').value;
+        var newPass = document.getElementById('resetNewPass').value;
+        var errorEl = document.getElementById('resetError');
+        var okEl = document.getElementById('resetOk');
+        errorEl.textContent = '';
+        okEl.textContent = '';
+
+        var result = await window.RicsAuth.confirmPasswordReset(identifier, code, newPass);
+        if (!result.ok) {
+          errorEl.textContent = result.error;
+          return;
+        }
+
+        okEl.textContent = 'Password reset successful. Please login with new password.';
+        document.getElementById('resetCode').value = '';
+        document.getElementById('resetNewPass').value = '';
+        showTab('login');
       });
     })();
   </script>
