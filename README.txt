@@ -35,14 +35,6 @@ Login and admin
   For other email providers (Hotmail, Yahoo, etc.), use your provider's SMTP server:
   - Check your email provider's help for SMTP hostname and port
   
-  Without SMTP setup:
-  - Email reset codes print to server terminal (for testing)
-  - Mobile/SMS codes print to server terminal (admin can provide to user)
-- Admin credentials are configured server-side in serve_with_range.py or via env vars:
-  - RICS_ADMIN_USERNAME (default: admin)
-  - RICS_ADMIN_PASSWORD (default: admin123123)
-- Learner portal after login: http://localhost:8080/index.html
-- Admin dashboard: http://localhost:8080/admin.html
 
 Progress tracking
 - Users, sessions, and progress are stored in SQLite database file rics_portal.db.
